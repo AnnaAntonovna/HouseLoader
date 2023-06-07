@@ -43174,6 +43174,13 @@ const gui = new GUI();
 //visabilityFolder.add(moon, 'visible').name('Moon visibility');
 
 //visabilityFolder.close();
+const skyColorParam = {
+    value: 0xffffff,
+};
+
+gui.addColor(skyColorParam, 'value').name('Sky Color').onChange(() => {
+    light.color.set(skyColorParam.value);
+});
 
 const lightColorParam = {
     value: 0xeb9824,
@@ -43191,13 +43198,7 @@ gui.addColor(light2ColorParam, 'value').name('Sunset 2 Color').onChange(() => {
     light2.color.set(light2ColorParam.value);
 });
 
-const skyColorParam = {
-    value: 0xffffff,
-};
 
-gui.addColor(skyColorParam, 'value').name('Sky Color').onChange(() => {
-    light.color.set(skyColorParam.value);
-});
 
 const ambientColorParam = {
     value: 0x7e5858,
