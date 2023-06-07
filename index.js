@@ -186,8 +186,6 @@ gui.addColor(light2ColorParam, 'value').name('Sunset 2 Color').onChange(() => {
     light2.color.set(light2ColorParam.value);
 });
 
-
-
 const ambientColorParam = {
     value: 0x7e5858,
 }
