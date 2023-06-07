@@ -43060,12 +43060,59 @@ grid.renderOrder = 0;
 
 // 2 The object
 
+const loadingScreen = document.getElementById('loader-container');
+const progressText = document.getElementById('progress-text');
+
     gltfloader.load('./medieval_house_and_wine_shop.glb',
     (gltf) => {
         scene.add(gltf.scene.rotateY(5).translateY(-150).translateX(250).translateZ(-20));
+        loadingScreen.classList.add('hidden');
+
+        const gui = new GUI();
+
+        const skyColorParam = {
+            value: 0x8c8c8c,
+        };
+
+        gui.addColor(skyColorParam, 'value').name('Sky Color').onChange(() => {
+            light.color.set(skyColorParam.value);
+        });
+
+        const lightColorParam = {
+            value: 0xeb9824,
+        };
+
+        gui.addColor(lightColorParam, 'value').name('Sunset Color').onChange(() => {
+            light1.color.set(lightColorParam.value);
+        });
+
+        const light2ColorParam = {
+            value: 0xeb9824,
+        };
+
+        gui.addColor(light2ColorParam, 'value').name('Sunset 2 Color').onChange(() => {
+            light2.color.set(light2ColorParam.value);
+        });
+
+        const ambientColorParam = {
+            value: 0x7e5858,
+        };
+
+        gui.addColor(ambientColorParam, 'value').name('Ambient Color').onChange(() => {
+            ambientLight.color.set(ambientColorParam.value);
+        });
+
+         const reflexColorParam = {
+            value: 0x362121,
+        };
+
+        gui.addColor(reflexColorParam, 'value').name('Ground Reflex').onChange(() => {
+            light.groundColor.set(reflexColorParam.value);
+        });
     }, 
     (progress) => {
         console.log(progress);
+        progressText.textContent = " Loading:  " + Math.trunc(progress.loaded / progress.total * 100) + "%";
     },
     (error) => {
         console.log(error);
@@ -43087,11 +43134,11 @@ renderer.setClearColor(0xc2c2c2, 1);
 // 5 Lights
 
 const light1 = new DirectionalLight(0xeb9824, 0.9);
-light1.position.set(400, 300, 300).normalize();
+light1.position.set(-500, 300, 100).normalize();
 scene.add(light1);
 
 const light2 = new DirectionalLight(0xeb9824, 0.9);
-light2.position.set(100, 800, 300).normalize();
+light2.position.set(100, 800, 500).normalize();
 scene.add(light2);
 
 
@@ -43100,7 +43147,7 @@ scene.add(ambientLight);
 
 
 const skyColor= 0x8c8c8c;
-const groundColor= 0xb97a20;
+const groundColor= 0x362121;
 const intensity = 1;
 const light = new HemisphereLight(skyColor, groundColor, intensity);
 scene.add(light);
@@ -43141,37 +43188,3 @@ function animate() {
 animate();
 
 // 10 Debugging
-
-const gui = new GUI();
-
-const skyColorParam = {
-    value: 0x8c8c8c,
-};
-
-gui.addColor(skyColorParam, 'value').name('Sky Color').onChange(() => {
-    light.color.set(skyColorParam.value);
-});
-
-const lightColorParam = {
-    value: 0xeb9824,
-};
-
-gui.addColor(lightColorParam, 'value').name('Sunset Color').onChange(() => {
-    light1.color.set(lightColorParam.value);
-});
-
-const light2ColorParam = {
-    value: 0xeb9824,
-};
-
-gui.addColor(light2ColorParam, 'value').name('Sunset 2 Color').onChange(() => {
-    light2.color.set(light2ColorParam.value);
-});
-
-const ambientColorParam = {
-    value: 0x7e5858,
-};
-
-gui.addColor(ambientColorParam, 'value').name('Ambient Color').onChange(() => {
-    ambientLight.color.set(ambientColorParam.value);
-});
