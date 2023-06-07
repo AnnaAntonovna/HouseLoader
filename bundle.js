@@ -43053,20 +43053,12 @@ new TextureLoader();
 
 const gltfloader = new GLTFLoader();
 
-
-
 const grid = new GridHelper(6, 6);
 grid.material.depthTest = false;
 grid.renderOrder = 0;
-scene.add(grid);
+//scene.add(grid);
 
 // 2 The object
-
-
-
-//const blueMaterial = new MeshLambertMaterial({color: new Color(0.04, 0.43, 0.6)});
-
-
 
     gltfloader.load('./medieval_house_and_wine_shop.glb',
     (gltf) => {
@@ -43107,7 +43099,7 @@ const ambientLight = new AmbientLight( 0x7e5858, 0.8);
 scene.add(ambientLight);
 
 
-const skyColor= 'white';
+const skyColor= 0x8c8c8c;
 const groundColor= 0xb97a20;
 const intensity = 1;
 const light = new HemisphereLight(skyColor, groundColor, intensity);
@@ -43130,11 +43122,6 @@ window.addEventListener('resize', () => {
 
 // 7 Controls
 
-//const controls = new OrbitControls(camera, canvas);
-//controls.enableDamping = true;
-
-
-
 CameraControls.install({THREE: subsetOfTHREE});
 const clock = new Clock;
 const cameraControls = new CameraControls(camera, canvas);
@@ -43144,14 +43131,6 @@ cameraControls.dollyToCursor = true;
 // 8 Animation
 
 function animate() {
-    //orangeCube.rotation.x += 0.01;
-    //orangeCube.rotation.z += 0.01;
-
-    //bigBlueCube.rotation.x -= 0.02;
-    //bigBlueCube.rotation.z -= 0.02;
-
-    //controls.update();
-
     const delta = clock.getDelta();
     cameraControls.update(delta);
 
@@ -43165,17 +43144,8 @@ animate();
 
 const gui = new GUI();
 
-//transformationFolder.add(earth.position, 'x', min, max, step).name('Position X');
-//transformationFolder.add(earth.position, 'y', min, max, step).name('Position Y');
-//transformationFolder.add(earth.position, 'z', min, max, step).name('Position Z');
-
-//transformationFolder.close();
-
-//visabilityFolder.add(moon, 'visible').name('Moon visibility');
-
-//visabilityFolder.close();
 const skyColorParam = {
-    value: 0xffffff,
+    value: 0x8c8c8c,
 };
 
 gui.addColor(skyColorParam, 'value').name('Sky Color').onChange(() => {
