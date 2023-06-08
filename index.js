@@ -122,7 +122,7 @@ const progressText = document.getElementById('progress-text');
     }, 
     (progress) => {
         console.log(progress);
-        progressText.textContent = " Loading:  " + Math.trunc(progress.loaded / progress.total * 100) + "%";
+        progressText.textContent = " Loading:  " + Math.min(Math.trunc(progress.loaded / progress.total) * 100, 100) + "%";
     },
     (error) => {
         console.log(error);
