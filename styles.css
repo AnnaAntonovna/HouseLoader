@@ -26,6 +26,12 @@ p{
 	padding-top: 50px;
 }
 
+.red{
+	background-color: white;
+	padding: 10px;
+	border-style: solid;
+	border-width: 3px;
+}
 #spinner {
 	width: 70.4px;
 	height: 70.4px;

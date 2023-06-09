@@ -43028,6 +43028,213 @@ function addPrimitiveAttributes( geometry, primitiveDef, parser ) {
 
 }
 
+class CSS2DObject extends Object3D {
+
+	constructor( element = document.createElement( 'div' ) ) {
+
+		super();
+
+		this.isCSS2DObject = true;
+
+		this.element = element;
+
+		this.element.style.position = 'absolute';
+		this.element.style.userSelect = 'none';
+
+		this.element.setAttribute( 'draggable', false );
+
+		this.center = new Vector2( 0.5, 0.5 ); // ( 0, 0 ) is the lower left; ( 1, 1 ) is the top right
+
+		this.addEventListener( 'removed', function () {
+
+			this.traverse( function ( object ) {
+
+				if ( object.element instanceof Element && object.element.parentNode !== null ) {
+
+					object.element.parentNode.removeChild( object.element );
+
+				}
+
+			} );
+
+		} );
+
+	}
+
+	copy( source, recursive ) {
+
+		super.copy( source, recursive );
+
+		this.element = source.element.cloneNode( true );
+
+		this.center = source.center;
+
+		return this;
+
+	}
+
+}
+
+//
+
+const _vector = new Vector3();
+const _viewMatrix = new Matrix4();
+const _viewProjectionMatrix = new Matrix4();
+const _a = new Vector3();
+const _b = new Vector3();
+
+class CSS2DRenderer {
+
+	constructor( parameters = {} ) {
+
+		const _this = this;
+
+		let _width, _height;
+		let _widthHalf, _heightHalf;
+
+		const cache = {
+			objects: new WeakMap()
+		};
+
+		const domElement = parameters.element !== undefined ? parameters.element : document.createElement( 'div' );
+
+		domElement.style.overflow = 'hidden';
+
+		this.domElement = domElement;
+
+		this.getSize = function () {
+
+			return {
+				width: _width,
+				height: _height
+			};
+
+		};
+
+		this.render = function ( scene, camera ) {
+
+			if ( scene.matrixWorldAutoUpdate === true ) scene.updateMatrixWorld();
+			if ( camera.parent === null && camera.matrixWorldAutoUpdate === true ) camera.updateMatrixWorld();
+
+			_viewMatrix.copy( camera.matrixWorldInverse );
+			_viewProjectionMatrix.multiplyMatrices( camera.projectionMatrix, _viewMatrix );
+
+			renderObject( scene, scene, camera );
+			zOrder( scene );
+
+		};
+
+		this.setSize = function ( width, height ) {
+
+			_width = width;
+			_height = height;
+
+			_widthHalf = _width / 2;
+			_heightHalf = _height / 2;
+
+			domElement.style.width = width + 'px';
+			domElement.style.height = height + 'px';
+
+		};
+
+		function renderObject( object, scene, camera ) {
+
+			if ( object.isCSS2DObject ) {
+
+				_vector.setFromMatrixPosition( object.matrixWorld );
+				_vector.applyMatrix4( _viewProjectionMatrix );
+
+				const visible = ( object.visible === true ) && ( _vector.z >= - 1 && _vector.z <= 1 ) && ( object.layers.test( camera.layers ) === true );
+				object.element.style.display = ( visible === true ) ? '' : 'none';
+
+				if ( visible === true ) {
+
+					object.onBeforeRender( _this, scene, camera );
+
+					const element = object.element;
+
+					element.style.transform = 'translate(' + ( - 100 * object.center.x ) + '%,' + ( - 100 * object.center.y ) + '%)' + 'translate(' + ( _vector.x * _widthHalf + _widthHalf ) + 'px,' + ( - _vector.y * _heightHalf + _heightHalf ) + 'px)';
+
+					if ( element.parentNode !== domElement ) {
+
+						domElement.appendChild( element );
+
+					}
+
+					object.onAfterRender( _this, scene, camera );
+
+				}
+
+				const objectData = {
+					distanceToCameraSquared: getDistanceToSquared( camera, object )
+				};
+
+				cache.objects.set( object, objectData );
+
+			}
+
+			for ( let i = 0, l = object.children.length; i < l; i ++ ) {
+
+				renderObject( object.children[ i ], scene, camera );
+
+			}
+
+		}
+
+		function getDistanceToSquared( object1, object2 ) {
+
+			_a.setFromMatrixPosition( object1.matrixWorld );
+			_b.setFromMatrixPosition( object2.matrixWorld );
+
+			return _a.distanceToSquared( _b );
+
+		}
+
+		function filterAndFlatten( scene ) {
+
+			const result = [];
+
+			scene.traverse( function ( object ) {
+
+				if ( object.isCSS2DObject ) result.push( object );
+
+			} );
+
+			return result;
+
+		}
+
+		function zOrder( scene ) {
+
+			const sorted = filterAndFlatten( scene ).sort( function ( a, b ) {
+
+				if ( a.renderOrder !== b.renderOrder ) {
+
+					return b.renderOrder - a.renderOrder;
+
+				}
+
+				const distanceA = cache.objects.get( a ).distanceToCameraSquared;
+				const distanceB = cache.objects.get( b ).distanceToCameraSquared;
+
+				return distanceA - distanceB;
+
+			} );
+
+			const zMax = sorted.length;
+
+			for ( let i = 0, l = sorted.length; i < l; i ++ ) {
+
+				sorted[ i ].element.style.zIndex = zMax - i;
+
+			}
+
+		}
+
+	}
+
+}
+
 const subsetOfTHREE = {
     MOUSE,
     Vector2,
@@ -43049,7 +43256,6 @@ const subsetOfTHREE = {
 // 1 scene
 const scene = new Scene();
 const canvas = document.getElementById('three-canvas');
-new TextureLoader();
 
 const gltfloader = new GLTFLoader();
 
@@ -43060,14 +43266,22 @@ grid.renderOrder = 0;
 
 // 2 The object
 
+
+
+
+
 const loadingScreen = document.getElementById('loader-container');
 const progressText = document.getElementById('progress-text');
 
+let gltfScene;
+
     gltfloader.load('./medieval_house_and_wine_shop.glb',
     (gltf) => {
-        scene.add(gltf.scene.rotateY(5).translateY(-150).translateX(250).translateZ(-20));
+        
         loadingScreen.classList.add('hidden');
-
+        scene.add(gltf.scene.rotateY(5).translateY(-150).translateX(250).translateZ(-20));
+        gltfScene = gltf.scene;
+        
         const gui = new GUI();
 
         const skyColorParam = {
@@ -43112,16 +43326,17 @@ const progressText = document.getElementById('progress-text');
     }, 
     (progress) => {
         console.log(progress);
-        progressText.textContent = " Loading:  " + Math.min(Math.trunc(progress.loaded / progress.total) * 100, 100) + "%";
+        //progressText.textContent = " Loading:  " + Math.min(Math.trunc(progress.loaded / progress.total) * 100, 100) + "%";
+        const current = (progress.loaded /  progress.total) * 100;
+        const result = Math.min(current, 100); 
+        const formatted = Math.trunc(result * 100) / 100;
+        progressText.textContent = `Loading: ${formatted}%`;
     },
     (error) => {
         console.log(error);
     });
 
 const camera = new PerspectiveCamera(40, canvas.clientWidth / canvas.clientHeight);
-camera.position.z = 1000;
-camera.position.x = -800;
-camera.position.y = 100;
 scene.add(camera);
 
 // 4 The Renderer
@@ -43130,6 +43345,13 @@ const pixelRatio = Math.min(window.devicePixelRatio, 2);
 renderer.setPixelRatio(pixelRatio);
 renderer.setSize(canvas.clientWidth, canvas.clientHeight, false); //false =  (do not ) update the style of element
 renderer.setClearColor(0xc2c2c2, 1);
+
+const labelRender = new CSS2DRenderer();
+labelRender.setSize(canvas.clientWidth, canvas.clientHeight);
+labelRender.domElement.style.position = 'absolute';
+labelRender.domElement.style.pointerEvents = 'none';
+labelRender.domElement.style.top = '0px';
+document.body.appendChild(labelRender.domElement);
 
 // 5 Lights
 
@@ -43164,6 +43386,7 @@ window.addEventListener('resize', () => {
     camera.aspect = canvas.clientWidth / canvas.clientHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+    labelRender.setSize(canvas.clientWidth, canvas.clientHeight);
 });
 
 
@@ -43174,6 +43397,8 @@ const clock = new Clock;
 const cameraControls = new CameraControls(camera, canvas);
 cameraControls.dollyToCursor = true;
 
+cameraControls.setLookAt(-800, 100, 1000, 0, 10, 0);
+
 
 // 8 Animation
 
@@ -43182,9 +43407,36 @@ function animate() {
     cameraControls.update(delta);
 
     renderer.render(scene, camera);
+    labelRender.render(scene, camera);
     requestAnimationFrame(animate);
 }
 
 animate();
 
-// 10 Debugging
+// Set up raycasting
+
+const raycaster = new Raycaster();
+const mouse = new Vector2();
+
+window.addEventListener('dblclick', (event)=> {
+    mouse.x = event.clientX / canvas.clientWidth * 2 - 1;
+	mouse.y = - (event.clientY / canvas.clientHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersect = raycaster.intersectObject(gltfScene);
+
+    if (!intersect.length) return;
+
+    const collisionLocation = intersect[0].point;
+
+    const label = document.createElement('h1');
+    label.textContent = "Hello world!";
+    label.classList.add('red');
+
+    const labelObject = new CSS2DObject(label);
+    labelObject.position .copy(collisionLocation);
+    scene.add(labelObject);
+
+    console.log(found);
+
+});

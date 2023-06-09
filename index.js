@@ -35,7 +35,8 @@ import {
 //import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js';
 import CameraControls from 'camera-controls';
 import GUI from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js'
+import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
+import {CSS2DRenderer, CSS2DObject} from 'three/examples/jsm/renderers/CSS2DRenderer.js'
 
 
 const subsetOfTHREE = {
@@ -59,7 +60,6 @@ const subsetOfTHREE = {
 // 1 scene
 const scene = new Scene();
 const canvas = document.getElementById('three-canvas');
-const loader = new TextureLoader();
 
 const gltfloader = new GLTFLoader();
 
@@ -70,14 +70,22 @@ grid.renderOrder = 0;
 
 // 2 The object
 
+
+
+
+
 const loadingScreen = document.getElementById('loader-container');
 const progressText = document.getElementById('progress-text');
 
+let gltfScene;
+
     gltfloader.load('./medieval_house_and_wine_shop.glb',
     (gltf) => {
-        scene.add(gltf.scene.rotateY(5).translateY(-150).translateX(250).translateZ(-20));
+        
         loadingScreen.classList.add('hidden');
-
+        scene.add(gltf.scene.rotateY(5).translateY(-150).translateX(250).translateZ(-20));
+        gltfScene = gltf.scene;
+        
         const gui = new GUI();
 
         const skyColorParam = {
@@ -122,7 +130,11 @@ const progressText = document.getElementById('progress-text');
     }, 
     (progress) => {
         console.log(progress);
-        progressText.textContent = " Loading:  " + Math.min(Math.trunc(progress.loaded / progress.total) * 100, 100) + "%";
+        //progressText.textContent = " Loading:  " + Math.min(Math.trunc(progress.loaded / progress.total) * 100, 100) + "%";
+        const current = (progress.loaded /  progress.total) * 100;
+        const result = Math.min(current, 100); 
+        const formatted = Math.trunc(result * 100) / 100;
+        progressText.textContent = `Loading: ${formatted}%`;
     },
     (error) => {
         console.log(error);
@@ -137,9 +149,6 @@ const sizes = {
 }
 
 const camera = new PerspectiveCamera(40, canvas.clientWidth / canvas.clientHeight);
-camera.position.z = 1000;
-camera.position.x = -800;
-camera.position.y = 100;
 scene.add(camera);
 
 // 4 The Renderer
@@ -148,6 +157,13 @@ const pixelRatio = Math.min(window.devicePixelRatio, 2);
 renderer.setPixelRatio(pixelRatio);
 renderer.setSize(canvas.clientWidth, canvas.clientHeight, false); //false =  (do not ) update the style of element
 renderer.setClearColor(0xc2c2c2, 1);
+
+const labelRender = new CSS2DRenderer();
+labelRender.setSize(canvas.clientWidth, canvas.clientHeight);
+labelRender.domElement.style.position = 'absolute';
+labelRender.domElement.style.pointerEvents = 'none';
+labelRender.domElement.style.top = '0px';
+document.body.appendChild(labelRender.domElement);
 
 // 5 Lights
 
@@ -182,6 +198,7 @@ window.addEventListener('resize', () => {
     camera.aspect = canvas.clientWidth / canvas.clientHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+    labelRender.setSize(canvas.clientWidth, canvas.clientHeight);
 })
 
 
@@ -192,6 +209,8 @@ const clock = new Clock;
 const cameraControls = new CameraControls(camera, canvas);
 cameraControls.dollyToCursor = true;
 
+cameraControls.setLookAt(-800, 100, 1000, 0, 10, 0);
+
 
 // 8 Animation
 
@@ -200,14 +219,39 @@ function animate() {
     cameraControls.update(delta);
 
     renderer.render(scene, camera);
+    labelRender.render(scene, camera);
     requestAnimationFrame(animate);
 }
 
 animate();
 
-// 10 Debugging
+// Set up raycasting
 
+const raycaster = new Raycaster();
+const mouse = new Vector2();
 
+window.addEventListener('dblclick', (event)=> {
+    mouse.x = event.clientX / canvas.clientWidth * 2 - 1;
+	mouse.y = - (event.clientY / canvas.clientHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersect = raycaster.intersectObject(gltfScene);
+
+    if (!intersect.length) return;
+
+    const collisionLocation = intersect[0].point;
+
+    const label = document.createElement('h1');
+    label.textContent = "Hello world!";
+    label.classList.add('red');
+
+    const labelObject = new CSS2DObject(label);
+    labelObject.position .copy(collisionLocation);
+    scene.add(labelObject);
+
+    console.log(found);
+
+})
 
 
 
